@@ -1,4 +1,6 @@
-FROM centos:centos6
+ARG BASE_IMAGE=centos:centos6
+FROM $BASE_IMAGE
+ARG RUBY_VERSION=2.5.7
 
 RUN yum -y upgrade && \
   yum install -y \
@@ -23,12 +25,14 @@ RUN yum -y upgrade && \
     readline \
     readline-devel \
     sqlite-devel \
+    which \
     zlib \
     zlib-devel
 
 # Install rvm
-RUN curl -sSL https://rvm.io/mpapis.asc | gpg --import - && \
-    curl -L get.rvm.io | bash -s stable
+RUN curl -sSL https://rvm.io/mpapis.asc | gpg --import - \
+    && gpg2 --keyserver hkp://pool.sks-keyservers.net --recv-keys 409B6B1796C275462A1703113804BB82D39DC0E3 7D2BAF1CF37B13E2069D6956105BD0E739499BDB \
+    && curl -L get.rvm.io | bash -s stable
 
 # Change the shell to load RVM from profile
 SHELL ["/bin/bash", "-l", "-c"]
@@ -36,8 +40,10 @@ SHELL ["/bin/bash", "-l", "-c"]
 # RVM requirements
 RUN rvm requirements
 
-# ruby 2.3.3
-RUN rvm install ruby-2.3.3
+
+# ruby version
+RUN rvm install "ruby-${RUBY_VERSION}" -C --enable-shared \
+  && cp "/usr/local/rvm/src/${RUBY_VERSION}/libruby-static.a" "/usr/local/rvm/rubies/${RUBY_VERSION}/lib/"
 
 WORKDIR /usr/src/mod_ruby
 COPY . /usr/src/mod_ruby
@@ -48,7 +54,7 @@ COPY examples/docker_httpd.conf /etc/httpd/conf.d
 
 RUN ruby configure.rb \
     --with-apr-includes=/usr/include/apr-1 \
-    --with-apxs=/usr/sbin/apxs \
+    --with-apxs=$(which apxs) \
     # Force mod_ruby.so to statically link ruby interpreter
     && sed 's/LIBRUBYARG = $(LIBRUBYARG_SHARED)/LIBRUBYARG = $(LIBRUBYARG_STATIC)/' -i Makefile \
     && make \

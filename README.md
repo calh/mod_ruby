@@ -40,6 +40,12 @@ You can use Apache 2.0 also, but there are some restrictions.
 $ docker build -t mod_ruby .
 ```
 
+* Change the build base image, ruby version:
+
+```
+$ docker build -t mod_ruby --build-arg BASE_IMAGE=centos:centos6 --build-arg RUBY_VERSION=2.5.7
+```
+
 * Start up a container, binding port 80
 
 ```
